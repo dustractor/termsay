@@ -81,7 +81,7 @@ endfun
 <pre><code>start /B gvim.exe --servername FOO_BAR_NAME
 </code></pre><p>Then you can send keystrokes to that vim instance like this:</p>
 <pre><code>call remote_send(FOO_BAR_NAME,&quot;QUOTED STRING OF KEYSTROKES&quot;)
-</code></pre><p>(In order to tell it to press return and execute the keystrokes as a command, you send the string &quot;\<cr>&quot;.)</p>
+</code></pre><p>(In order to tell it to press return and execute the keystrokes as a command, you send the string &quot;&lt;cr&gt;&quot;.)</p>
 <p>Since vim can run a terminal inside itself, we tell the new vim instance to make one of those like this:</p>
 <pre><code>call remote_send(FOO_BAR_NAME,&quot;:term ++curwin ++kill=kill&lt;cr&gt;&quot;)
 </code></pre><p><code>:term</code> is the command. <code>++curwin</code> makes the new terminal occupy the full screen instead of being a split, and <code>++kill=kill</code> makes it not complain when you close vim with a running process.</p>
