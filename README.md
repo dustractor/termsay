@@ -3,9 +3,9 @@ the cow says moo the pig says oink the terminal says whatever you tell it to
 
 ---
 
-When I'm on windows I use [gvim](https://www.vim.org/download.php) instead of vim in a terminal. I also don't use tmux since it isn't available on windows. (Other than WSL.)
+When I'm on windows I use [gvim](https://github.com/vim/vim-win32-installer/releases) instead of using vim in a terminal as I would normally do on Linux or MacOS. I also don't use tmux since it isn't available on windows. (Other than via WSL.)
 
-The main thing I used tmux for was not multiplexing but rather the ability to easily send commands to an arbitrary tmux window.
+The main thing I use tmux for is not for multiplexing but rather the ability to easily send commands to an arbitrary tmux window.
 
 A similar thing is possible with vim when it is compiled with +clientserver, and luckily, gvim has that feature.
 
