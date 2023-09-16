@@ -91,4 +91,4 @@ The secondary vim instance needs a server name so that we can direct messages to
 
 They say a picture is word a thousand words. I don't know how many words an animation is worth but here is this setup in action:
 
-
+![video](untitled.webm)

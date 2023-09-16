@@ -1,0 +1,101 @@
+<!doctype html>
+<html>
+    <head>
+        <title>termsay</title>
+        <meta charset='utf-8'/>
+        <link rel="stylesheet" type="text/css" href="./index.html_files/github-markdown.css">
+        <style>
+            .markdown-body {
+                box-sizing: border-box;
+                min-width: 200px;
+                max-width: 980px;
+                margin: 0 auto;
+                padding: 45px;
+            }
+        </style>
+        <script>
+            window.onload = function() {
+                if (document.querySelector("script[type=\"math/tex; mode=display\"]") !== null) {
+                    var mathjax = document.createElement("script");
+                    mathjax.src = "https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML";
+                    document.head.appendChild(mathjax);
+                }
+                if (document.getElementsByTagName("code").length !== 0) {
+                    var highlight = document.createElement("script");
+                    var highlightcss = document.createElement("link");
+                    highlight.src = "http://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.2.0/highlight.min.js";
+                    highlightcss.rel = "stylesheet";
+                    highlightcss.href = "http://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.2.0/styles/github.min.css";
+                    highlight.onload = function() {hljs.initHighlighting();};
+                    document.head.appendChild(highlight);
+                    document.head.appendChild(highlightcss);
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <article class="markdown-body">
+            <h1 id="termsay">termsay</h1>
+<p>the cow says moo the pig says oink the terminal says whatever you tell it to</p>
+<hr>
+<p>When I&#39;m on windows I use <a href="https://github.com/vim/vim-win32-installer/releases">gvim</a> instead of using vim in a terminal as I would normally do on Linux or MacOS. I also don&#39;t use tmux since it isn&#39;t available on windows. (Other than via WSL.)</p>
+<p>The main thing I use tmux for is not for multiplexing but rather the ability to easily send commands to an arbitrary tmux window.</p>
+<p>A similar thing is possible with vim when it is compiled with +clientserver, and luckily, gvim has that feature.</p>
+<p>So I have this function in my vimrc:</p>
+<pre><code>if has(&#39;win32&#39;)
+    fun! Termsay(msg)
+        let l:filename = expand(&quot;%:p:t&quot;)
+        let l:parentdirname = expand(&quot;%:p:h:t&quot;)
+        let l:servername = toupper(l:parentdirname . &quot;_&quot; . l:filename)
+        let l:startcmdfmt = &quot;start /B gvim.exe --servername %s&quot;
+        let l:startcmd = printf(l:startcmdfmt,l:servername)
+        if match(serverlist(),l:servername) == -1
+            call system(l:startcmd)
+            sleep 333m
+            call remote_send(l:servername,&quot;:term ++curwin ++kill=kill&lt;cr&gt;&quot;)
+        endif
+        call remote_send(l:servername,a:msg.&quot;&lt;cr&gt;&quot;)
+    endfun
+endif
+</code></pre><p>Along with this command:</p>
+<pre><code>if has(&#39;win32&#39;)
+    com! -nargs=1 Termsay call Termsay(&lt;q-args&gt;)
+endif
+</code></pre><p>Coupled with an autocommand:</p>
+<pre><code>aug DeskPy
+    au!
+    au BufNew,BufReadPost ~/Desktop/*.py call DeskPySetup(expand(&quot;&lt;afile&gt;&quot;))
+aug END
+</code></pre><p>Which executes (in this example) when editing python files on my Desktop or in any folder therein. (Remember: the glob character <code>*</code> in an autocommand is recursive!)</p>
+<p>The autocommand runs this function which sets things up for python and defines a mapping:</p>
+<pre><code>fun! DeskPySetup(afile)
+    if has(&#39;win32&#39;)
+        let l:prog = expand(&quot;~/anaconda3/python.exe&quot;)
+        exe printf(&quot;nmap &lt;buffer&gt;&lt;F12&gt; :Termsay %s %s &lt;cr&gt;&quot;,l:prog,a:afile)
+    endif
+endfun
+</code></pre><p>The end result is that I can press F12 to run whatever I&#39;m editing in a terminal.</p>
+<p>It doesn&#39;t block my editing window waiting for me to press ENTER. It doesn&#39;t steal my focus by switching to the other terminal either.</p>
+<p>How it works: Vim can talk to another vim instance with +clientserver, using <code>remote_send()</code></p>
+<p>The main vim instance starts the secondary vim instance using</p>
+<pre><code>start /B gvim.exe --servername FOO_BAR_NAME
+</code></pre><p>Then you can send keystrokes to that vim instance like this:</p>
+<pre><code>call remote_send(FOO_BAR_NAME,&quot;QUOTED STRING OF KEYSTROKES&quot;)
+</code></pre><p>(In order to tell it to press return and execute the keystrokes as a command, you send the string &quot;\<cr>&quot;.)</p>
+<p>Since vim can run a terminal inside itself, we tell the new vim instance to make one of those like this:</p>
+<pre><code>call remote_send(FOO_BAR_NAME,&quot;:term ++curwin ++kill=kill&lt;cr&gt;&quot;)
+</code></pre><p><code>:term</code> is the command. <code>++curwin</code> makes the new terminal occupy the full screen instead of being a split, and <code>++kill=kill</code> makes it not complain when you close vim with a running process.</p>
+<p>So from then on we can send that vim instance commands and they will be run inside the terminal.  In this case, I want to tell python to run the file I am editing.</p>
+<pre><code>let l:filename = expand(&quot;%:p:t&quot;)
+</code></pre><p>The name of the file currently being edited -- you get that with <code>expand(&quot;%:p:t&quot;)</code></p>
+<p><code>%</code> is the current buffer.  The modification <code>:p</code> gets the path to the file in the buffer.  The modification <code>:t</code> gets the tail of the path, aka the name.</p>
+<p>The secondary vim instance needs a server name so that we can direct messages to it, so I name the server based on the directory of the file I am editing plus the name of the file.</p>
+<pre><code>let l:parentdirname = expand(&quot;%:p:h:t&quot;)
+let l:servername = toupper(l:parentdirname . &quot;_&quot; . l:filename)
+</code></pre><p><code>expand(&quot;%:p:h:t&quot;)</code> gives that value.  The <code>:h</code> modifier give the head of the path -- everything that&#39;s not the tail, that is.  So the tail of the head of the path of the buffer is the name of the directory.</p>
+<p>They say a picture is word a thousand words. I don&#39;t know how many words an animation is worth but here is this setup in action:</p>
+<p><img src="index.html_files\images\untitled.webm" alt="video"></p>
+
+        </article>
+    </body>
+</html>
